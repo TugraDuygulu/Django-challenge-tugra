@@ -28,7 +28,8 @@ def _get_sample_task(task_id: int) -> dict[str, object]:
 
 
 def task_list(request: HttpRequest) -> HttpResponse:
-    return render(request, "tasks/task_list.html", {"tasks": Task.objects.all()})
+    tasks = Task.objects.all()
+    return render(request, "tasks/task_list.html", {"tasks": tasks})
 
 
 def task_create(request: HttpRequest) -> HttpResponse:
