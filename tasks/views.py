@@ -2,6 +2,7 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseNotAllow
 from django.shortcuts import redirect, render
 
 from .forms import TaskForm
+from .models import Task
 
 SAMPLE_TASKS = [
     {
@@ -27,14 +28,16 @@ def _get_sample_task(task_id: int) -> dict[str, object]:
 
 
 def task_list(request: HttpRequest) -> HttpResponse:
-    # TODO(student): replace SAMPLE_TASKS with Task.objects.all()
-    return render(request, "tasks/task_list.html", {"tasks": SAMPLE_TASKS})
+    tasks = Task.objects.all()
+    return render(request, "tasks/task_list.html", {"tasks": tasks})
 
 
 def task_create(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
-        # TODO(student): validate and save a Task instance using the form
-        return redirect("task_list")
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("task_list")
     else:
         form = TaskForm()
 
@@ -46,13 +49,18 @@ def task_create(request: HttpRequest) -> HttpResponse:
 
 
 def task_edit(request: HttpRequest, task_id: int) -> HttpResponse:
-    task = _get_sample_task(task_id)
+    try:
+        task = Task.objects.get(id=task_id)
+    except Task.DoesNotExist:
+        raise Http404("Task not found")
 
     if request.method == "POST":
-        # TODO(student): load Task from DB, validate, and persist updates
-        return redirect("task_list")
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            form.save()
+            return redirect("task_list")
     else:
-        form = TaskForm(initial=task)
+        form = TaskForm(instance=task)
 
     return render(
         request,
@@ -65,7 +73,10 @@ def task_delete(request: HttpRequest, task_id: int) -> HttpResponse:
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
 
-    # Keep 404 behavior for invalid IDs in the starter template.
-    _get_sample_task(task_id)
-    # TODO(student): delete the Task from the database
+    try:
+        task = Task.objects.get(id=task_id)
+    except Task.DoesNotExist:
+        raise Http404("Task not found")
+
+    task.delete()
     return redirect("task_list")
